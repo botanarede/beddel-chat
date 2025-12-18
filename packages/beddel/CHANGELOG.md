@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.2.0] - 2025-12-18
+
+### Added
+- **TypeScript Code-Behind for Custom Agents**: Custom agents can now include TypeScript implementations alongside YAML definitions
+  - Place `.ts` files in `/agents` directory
+  - Export functions are automatically registered with namespaced keys
+  - New `custom-action` workflow type for executing TypeScript functions
+  - Full access to input, variables, execution context, and Beddel helpers
+- **Enhanced Agent Registry**: 
+  - `loadCustomFunctions()` method for dynamic TypeScript module loading
+  - `getCustomFunction()` method for runtime function retrieval
+  - Async agent loading with proper error handling
+- **Complete Documentation**: Added comprehensive guide for TypeScript code-behind in README.md
+
+### Changed
+- `AgentRegistry.loadCustomAgents()` is now async to support dynamic imports
+- Updated agent loading flow to include TypeScript module discovery
+
+### Backward Compatibility
+- All existing agents (joker, translator, image-generator) continue to work without changes
+- YAML-only agents are fully supported
+- No breaking changes to existing APIs
+
+---
+
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),

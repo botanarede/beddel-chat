@@ -8,6 +8,7 @@ import { experimental_generateImage, generateText } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { type ZodTypeAny } from "zod";
 import { ExecutionContext } from "../types/executionContext";
+import { agentRegistry } from "../agents/agentRegistry";
 import {
   DeclarativeSchemaCompiler,
   DeclarativeSchemaValidationError,
@@ -263,6 +264,8 @@ export class DeclarativeAgentInterpreter {
         return this.executeGenkitTranslation(step, variables, options);
       case "genkit-image":
         return this.executeGenkitImage(step, variables, options);
+      case "custom-action":
+        return this.executeCustomAction(step, variables, options);
       default:
         throw new Error(`Unsupported workflow step type: ${step.type}`);
     }
@@ -421,7 +424,7 @@ export class DeclarativeAgentInterpreter {
 
     const promptTemplate =
       typeof step.action?.promptTemplate === "string" &&
-      step.action.promptTemplate.trim().length > 0
+        step.action.promptTemplate.trim().length > 0
         ? step.action.promptTemplate
         : "Gere uma imagem detalhada no estilo {{estilo}} baseada na descrição: {{descricao}}";
 
@@ -454,6 +457,62 @@ export class DeclarativeAgentInterpreter {
     );
     return imageResult;
   }
+
+  /**
+   * Execute custom action backed by TypeScript implementation
+   */
+  private async executeCustomAction(
+    step: any,
+    variables: Map<string, any>,
+    options: YamlAgentInterpreterOptions
+  ): Promise<any> {
+    const functionName = step.action?.function;
+    if (!functionName) {
+      throw new Error("Missing 'function' in custom-action");
+    }
+
+    options.context.log(`Custom action: Looking up function '${functionName}'`);
+
+    // Retrieve Code Implementation
+    const customFunc = agentRegistry.getCustomFunction(functionName);
+    if (!customFunc) {
+      throw new Error(
+        `Custom function '${functionName}' not found in registry. ` +
+        `Make sure the corresponding .ts file is in the /agents directory.`
+      );
+    }
+
+    // Prepare Arguments
+    const args = {
+      input: options.input,
+      variables: Object.fromEntries(variables),
+      action: step.action,
+      context: options.context,
+    };
+
+    options.context.log(`Custom action: Executing function '${functionName}'`);
+
+    // Execute Code
+    try {
+      const result = await customFunc(args);
+
+      // Save Result
+      if (step.action.result) {
+        variables.set(step.action.result, result);
+        options.context.log(
+          `Custom action: Saved result to variable '${step.action.result}'`
+        );
+      }
+
+      return result;
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      options.context.log(`Custom action execution failed: ${errorMessage}`);
+      options.context.setError(errorMessage);
+      throw new Error(`Custom action execution failed: ${errorMessage}`);
+    }
+  }
+
 
   /**
    * Evaluate value expression
@@ -594,8 +653,7 @@ export class DeclarativeAgentInterpreter {
 
     try {
       context.log(
-        `Invoking Gemini Flash text helper (temperature=${temperature}, maxTokens=${
-          typeof maxTokens === "number" ? maxTokens : "provider-default"
+        `Invoking Gemini Flash text helper (temperature=${temperature}, maxTokens=${typeof maxTokens === "number" ? maxTokens : "provider-default"
         })`
       );
       const generationOptions: Record<string, any> = {
@@ -611,11 +669,11 @@ export class DeclarativeAgentInterpreter {
       );
       const contentText = content
         ? content
-            .map((part: any) =>
-              typeof part?.text === "string" ? part.text : ""
-            )
-            .join(" ")
-            .trim()
+          .map((part: any) =>
+            typeof part?.text === "string" ? part.text : ""
+          )
+          .join(" ")
+          .trim()
         : "";
       const finalText = (text || "").trim() || contentText || "";
       if (!finalText) {
@@ -721,11 +779,11 @@ Texto:
 
       const contentText = content
         ? content
-            .map((part: any) =>
-              typeof part?.text === "string" ? part.text : ""
-            )
-            .join(" ")
-            .trim()
+          .map((part: any) =>
+            typeof part?.text === "string" ? part.text : ""
+          )
+          .join(" ")
+          .trim()
         : "";
       const translatedText = (text || "").trim() || contentText || "";
       if (!translatedText) {

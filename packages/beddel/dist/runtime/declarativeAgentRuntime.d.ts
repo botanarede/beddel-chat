@@ -97,6 +97,10 @@ export declare class DeclarativeAgentInterpreter {
      */
     private executeGenkitImage;
     /**
+     * Execute custom action backed by TypeScript implementation
+     */
+    private executeCustomAction;
+    /**
      * Evaluate value expression
      */
     private evaluateValue;

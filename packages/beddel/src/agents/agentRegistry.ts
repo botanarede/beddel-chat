@@ -23,19 +23,20 @@ export interface AgentRegistration {
  */
 export class AgentRegistry {
   private readonly agents: Map<string, AgentRegistration> = new Map();
+  private readonly customFunctions: Map<string, Function> = new Map();
 
   constructor() {
     // Register built-in agents on initialization
     this.registerBuiltinAgents();
 
     // Automatically load custom agents if running in Node.js environment
+    // This runs asynchronously in the background
     if (typeof process !== 'undefined' && typeof process.cwd === 'function') {
-      try {
-        this.loadCustomAgents();
-      } catch (error) {
+      this.loadCustomAgents().catch((error) => {
         // Silently fail if custom agents can't be loaded
         // This allows the registry to work even without custom agents
-      }
+        console.error('Failed to load custom agents during initialization:', error);
+      });
     }
   }
 
@@ -100,7 +101,7 @@ export class AgentRegistry {
    * Load custom agents from a specified directory
    * @param customAgentsPath - Optional path to custom agents directory. Defaults to process.cwd()/agents
    */
-  public loadCustomAgents(customAgentsPath?: string): void {
+  public async loadCustomAgents(customAgentsPath?: string): Promise<void> {
     try {
       // Determine the agents directory path
       const agentsPath = customAgentsPath || join(process.cwd(), "agents");
@@ -118,7 +119,6 @@ export class AgentRegistry {
 
       if (agentFiles.length === 0) {
         console.log(`No custom agent YAML files found in: ${agentsPath}`);
-        return;
       }
 
       // Register each custom agent
@@ -132,7 +132,12 @@ export class AgentRegistry {
         }
       }
 
-      console.log(`✅ Successfully loaded ${successCount}/${agentFiles.length} custom agents`);
+      if (agentFiles.length > 0) {
+        console.log(`✅ Successfully loaded ${successCount}/${agentFiles.length} custom agents`);
+      }
+
+      // Load TypeScript implementations
+      await this.loadCustomFunctions(agentsPath);
     } catch (error) {
       console.error("Failed to load custom agents:", error);
     }
@@ -376,6 +381,58 @@ export class AgentRegistry {
         ", "
       )}`
     );
+  }
+
+  /**
+   * Load custom TypeScript function implementations from /agents directory
+   * @param agentsPath - Path to the agents directory
+   */
+  private async loadCustomFunctions(agentsPath: string): Promise<void> {
+    try {
+      const files = readdirSync(agentsPath);
+      let functionCount = 0;
+
+      for (const file of files) {
+        if (file.endsWith(".ts")) {
+          const modulePath = join(agentsPath, file);
+          try {
+            // Dynamic import of the custom agent module
+            const module = await import(modulePath);
+
+            // Register all exported functions with a namespaced key
+            // e.g., "my-agent/myFunction"
+            Object.keys(module).forEach((funcName) => {
+              if (typeof module[funcName] === "function") {
+                const key = `${file.replace(".ts", "")}/${funcName}`;
+                this.customFunctions.set(key, module[funcName]);
+                functionCount++;
+                console.log(`📦 Registered custom function: ${key}`);
+              }
+            });
+          } catch (err) {
+            console.error(
+              `Failed to load custom agent implementation ${file}:`,
+              err
+            );
+          }
+        }
+      }
+
+      if (functionCount > 0) {
+        console.log(`✅ Successfully loaded ${functionCount} custom function(s)`);
+      }
+    } catch (error) {
+      console.error("Failed to load custom functions:", error);
+    }
+  }
+
+  /**
+   * Get a custom function by its namespaced key
+   * @param name - Function name in format "agent-name/functionName"
+   * @returns The registered function or undefined
+   */
+  public getCustomFunction(name: string): Function | undefined {
+    return this.customFunctions.get(name);
   }
 }
 

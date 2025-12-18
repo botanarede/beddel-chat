@@ -5,6 +5,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  turbopack: {},
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -12,7 +13,7 @@ const nextConfig = {
     unoptimized: true,
   },
   transpilePackages: ["beddel"],
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
     // Toggle local package via env. Default (unset) uses npm-installed "beddel".
     if (process.env.BEDDEL_LOCAL === "1") {
       config.resolve.alias = config.resolve.alias || {}

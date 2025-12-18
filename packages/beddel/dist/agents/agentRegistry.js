@@ -3,6 +3,39 @@
  * Agent Registry Service
  * Manages registration and execution of declarative YAML agents
  */
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.agentRegistry = exports.AgentRegistry = void 0;
 const fs_1 = require("fs");
@@ -14,17 +47,17 @@ const declarativeAgentRuntime_1 = require("../runtime/declarativeAgentRuntime");
 class AgentRegistry {
     constructor() {
         this.agents = new Map();
+        this.customFunctions = new Map();
         // Register built-in agents on initialization
         this.registerBuiltinAgents();
         // Automatically load custom agents if running in Node.js environment
+        // This runs asynchronously in the background
         if (typeof process !== 'undefined' && typeof process.cwd === 'function') {
-            try {
-                this.loadCustomAgents();
-            }
-            catch (error) {
+            this.loadCustomAgents().catch((error) => {
                 // Silently fail if custom agents can't be loaded
                 // This allows the registry to work even without custom agents
-            }
+                console.error('Failed to load custom agents during initialization:', error);
+            });
         }
     }
     /**
@@ -75,7 +108,7 @@ class AgentRegistry {
      * Load custom agents from a specified directory
      * @param customAgentsPath - Optional path to custom agents directory. Defaults to process.cwd()/agents
      */
-    loadCustomAgents(customAgentsPath) {
+    async loadCustomAgents(customAgentsPath) {
         try {
             // Determine the agents directory path
             const agentsPath = customAgentsPath || (0, path_1.join)(process.cwd(), "agents");
@@ -89,7 +122,6 @@ class AgentRegistry {
             const agentFiles = this.discoverCustomAgentFiles(agentsPath);
             if (agentFiles.length === 0) {
                 console.log(`No custom agent YAML files found in: ${agentsPath}`);
-                return;
             }
             // Register each custom agent
             let successCount = 0;
@@ -102,7 +134,11 @@ class AgentRegistry {
                     console.error(`Failed to register custom agent from ${yamlPath}:`, error);
                 }
             }
-            console.log(`✅ Successfully loaded ${successCount}/${agentFiles.length} custom agents`);
+            if (agentFiles.length > 0) {
+                console.log(`✅ Successfully loaded ${successCount}/${agentFiles.length} custom agents`);
+            }
+            // Load TypeScript implementations
+            await this.loadCustomFunctions(agentsPath);
         }
         catch (error) {
             console.error("Failed to load custom agents:", error);
@@ -310,6 +346,52 @@ class AgentRegistry {
             }
         }
         throw new Error(`Unable to locate agent asset '${filename}' in paths: ${candidatePaths.join(", ")}`);
+    }
+    /**
+     * Load custom TypeScript function implementations from /agents directory
+     * @param agentsPath - Path to the agents directory
+     */
+    async loadCustomFunctions(agentsPath) {
+        try {
+            const files = (0, fs_1.readdirSync)(agentsPath);
+            let functionCount = 0;
+            for (const file of files) {
+                if (file.endsWith(".ts")) {
+                    const modulePath = (0, path_1.join)(agentsPath, file);
+                    try {
+                        // Dynamic import of the custom agent module
+                        const module = await Promise.resolve(`${modulePath}`).then(s => __importStar(require(s)));
+                        // Register all exported functions with a namespaced key
+                        // e.g., "my-agent/myFunction"
+                        Object.keys(module).forEach((funcName) => {
+                            if (typeof module[funcName] === "function") {
+                                const key = `${file.replace(".ts", "")}/${funcName}`;
+                                this.customFunctions.set(key, module[funcName]);
+                                functionCount++;
+                                console.log(`📦 Registered custom function: ${key}`);
+                            }
+                        });
+                    }
+                    catch (err) {
+                        console.error(`Failed to load custom agent implementation ${file}:`, err);
+                    }
+                }
+            }
+            if (functionCount > 0) {
+                console.log(`✅ Successfully loaded ${functionCount} custom function(s)`);
+            }
+        }
+        catch (error) {
+            console.error("Failed to load custom functions:", error);
+        }
+    }
+    /**
+     * Get a custom function by its namespaced key
+     * @param name - Function name in format "agent-name/functionName"
+     * @returns The registered function or undefined
+     */
+    getCustomFunction(name) {
+        return this.customFunctions.get(name);
     }
 }
 exports.AgentRegistry = AgentRegistry;

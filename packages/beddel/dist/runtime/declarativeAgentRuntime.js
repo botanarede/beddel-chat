@@ -41,6 +41,7 @@ exports.declarativeInterpreter = exports.DeclarativeAgentInterpreter = void 0;
 const yaml = __importStar(require("js-yaml"));
 const ai_1 = require("ai");
 const google_1 = require("@ai-sdk/google");
+const agentRegistry_1 = require("../agents/agentRegistry");
 const schemaCompiler_1 = require("./schemaCompiler");
 /**
  * Safe declarative YAML interpreter - no dynamic code execution
@@ -188,6 +189,8 @@ class DeclarativeAgentInterpreter {
                 return this.executeGenkitTranslation(step, variables, options);
             case "genkit-image":
                 return this.executeGenkitImage(step, variables, options);
+            case "custom-action":
+                return this.executeCustomAction(step, variables, options);
             default:
                 throw new Error(`Unsupported workflow step type: ${step.type}`);
         }
@@ -307,6 +310,46 @@ class DeclarativeAgentInterpreter {
         options.context.log(`Image generator: Saved result in variable '${resultVar}' with keys: ${Object.keys(imageResult).join(", ")}`);
         options.context.log(`Image generator: imageResult.image_url exists: ${!!imageResult?.image_url}`);
         return imageResult;
+    }
+    /**
+     * Execute custom action backed by TypeScript implementation
+     */
+    async executeCustomAction(step, variables, options) {
+        const functionName = step.action?.function;
+        if (!functionName) {
+            throw new Error("Missing 'function' in custom-action");
+        }
+        options.context.log(`Custom action: Looking up function '${functionName}'`);
+        // Retrieve Code Implementation
+        const customFunc = agentRegistry_1.agentRegistry.getCustomFunction(functionName);
+        if (!customFunc) {
+            throw new Error(`Custom function '${functionName}' not found in registry. ` +
+                `Make sure the corresponding .ts file is in the /agents directory.`);
+        }
+        // Prepare Arguments
+        const args = {
+            input: options.input,
+            variables: Object.fromEntries(variables),
+            action: step.action,
+            context: options.context,
+        };
+        options.context.log(`Custom action: Executing function '${functionName}'`);
+        // Execute Code
+        try {
+            const result = await customFunc(args);
+            // Save Result
+            if (step.action.result) {
+                variables.set(step.action.result, result);
+                options.context.log(`Custom action: Saved result to variable '${step.action.result}'`);
+            }
+            return result;
+        }
+        catch (e) {
+            const errorMessage = e instanceof Error ? e.message : String(e);
+            options.context.log(`Custom action execution failed: ${errorMessage}`);
+            options.context.setError(errorMessage);
+            throw new Error(`Custom action execution failed: ${errorMessage}`);
+        }
     }
     /**
      * Evaluate value expression

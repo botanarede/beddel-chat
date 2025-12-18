@@ -17,6 +17,7 @@ export interface AgentRegistration {
  */
 export declare class AgentRegistry {
     private readonly agents;
+    private readonly customFunctions;
     constructor();
     /**
      * Register an agent
@@ -38,7 +39,7 @@ export declare class AgentRegistry {
      * Load custom agents from a specified directory
      * @param customAgentsPath - Optional path to custom agents directory. Defaults to process.cwd()/agents
      */
-    loadCustomAgents(customAgentsPath?: string): void;
+    loadCustomAgents(customAgentsPath?: string): Promise<void>;
     /**
      * Register a custom agent from a YAML file
      */
@@ -75,6 +76,17 @@ export declare class AgentRegistry {
      * Resolve agent asset path when running in bundled runtimes
      */
     private resolveAgentPath;
+    /**
+     * Load custom TypeScript function implementations from /agents directory
+     * @param agentsPath - Path to the agents directory
+     */
+    private loadCustomFunctions;
+    /**
+     * Get a custom function by its namespaced key
+     * @param name - Function name in format "agent-name/functionName"
+     * @returns The registered function or undefined
+     */
+    getCustomFunction(name: string): Function | undefined;
 }
 export declare const agentRegistry: AgentRegistry;
 export default AgentRegistry;

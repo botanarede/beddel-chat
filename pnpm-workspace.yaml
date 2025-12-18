@@ -1,2 +1,6 @@
 packages:
-  - "."
+  - .
+
+ignoredBuiltDependencies:
+  - isolated-vm
+  - protobufjs
