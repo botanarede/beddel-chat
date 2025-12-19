@@ -214,9 +214,9 @@ const yoga = (0, graphql_yoga_1.createYoga)({
     fetchAPI: { Request, Response },
 });
 async function handleGraphQLPost(request) {
-    return yoga.handleRequest(request, {});
+    return yoga.handleRequest(request, { request });
 }
 async function handleGraphQLGet(request) {
-    return yoga.handleRequest(request, {});
+    return yoga.handleRequest(request, { request });
 }
 //# sourceMappingURL=graphql.js.map

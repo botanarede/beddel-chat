@@ -269,16 +269,16 @@ const yoga = createYoga({
       },
     },
   }),
-  context: ({ request }) => ({ request }),
+  context: ({ request }: { request: Request }) => ({ request }),
   graphqlEndpoint: "/api/graphql",
   graphiql: true,
   fetchAPI: { Request, Response },
 });
 
 export async function handleGraphQLPost(request: Request) {
-  return yoga.handleRequest(request, {});
+  return yoga.handleRequest(request, { request });
 }
 
 export async function handleGraphQLGet(request: Request) {
-  return yoga.handleRequest(request, {});
+  return yoga.handleRequest(request, { request });
 }
