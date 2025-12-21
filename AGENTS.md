@@ -14,7 +14,7 @@ This document provides essential context for AI agents and developers working on
 - **Isolated runtime environments** with sandboxed execution
 - **Declarative agent definitions** via YAML manifests
 - **Built-in compliance** (GDPR/LGPD) and audit trails
-- **Multi-tenant Firebase support** with tenant isolation
+- **Provider-agnostic multi-tenant support** with swappable backends (Firebase, in-memory, etc.)
 
 **Target Users**: Backend teams embedding declarative YAML agents in Node.js services.
 
@@ -32,11 +32,14 @@ This document provides essential context for AI agents and developers working on
 | `src/security` | Threat detection, scoring, hardening | `SecurityScanner` |
 | `src/compliance` | GDPR/LGPD compliance engines | `GDPRCompliance`, `LGPDCompliance` |
 | `src/audit` | Hash-based audit trail logging | `AuditTrail` |
-| `src/firebase` | Multi-tenant Firebase management | `MultiTenantFirebaseManager` |
+| `src/tenant` | Provider-agnostic multi-tenant management | `TenantManager`, `ITenantProvider`, `ProviderFactory` |
+| `src/firebase` | Firebase-specific tenant provider (**deprecated**) | `MultiTenantFirebaseManager` |
 | `src/performance` | Monitoring, autoscaling, benchmarking | `PerformanceMonitor` |
 | `src/integration` | High-level runtime glue | `SecureYamlRuntime` |
 
 All exports are centralized in `src/index.ts`.
+
+> ⚠️ **Deprecation Notice**: `src/firebase/tenantManager.ts` is deprecated. Use `src/tenant/TenantManager` with the appropriate provider instead.
 
 ---
 
@@ -185,6 +188,7 @@ node packages/beddel/tests/test-runtime-security.js
 - `src/security/*` — Core security logic; changes require thorough review
 - `src/parser/SecureYamlParser.ts` — Parsing security; modifications need justification
 - `src/runtime/IsolatedRuntimeManager.ts` — Sandbox isolation; high-risk changes
+- `src/tenant/*` — Multi-tenant isolation; provider changes require review
 
 ---
 

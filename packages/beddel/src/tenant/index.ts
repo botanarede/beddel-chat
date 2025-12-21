@@ -6,16 +6,23 @@
  * allowing swappable backends (Firebase, Supabase, PostgreSQL, etc.) without
  * modifying business logic.
  *
+ * External providers (Firebase, Supabase, etc.) should be registered by the
+ * consuming application using ProviderRegistry before use.
+ *
  * @example
  * ```typescript
  * import {
  *   TenantManager,
  *   createProvider,
+ *   ProviderRegistry,
  *   InMemoryTenantProvider,
- *   FirebaseTenantProvider,
  * } from 'beddel/tenant';
  *
- * // Use in-memory provider for testing
+ * // Register external provider (in your application)
+ * import { FirebaseTenantProvider } from './providers/FirebaseTenantProvider';
+ * ProviderRegistry.register('firebase', () => new FirebaseTenantProvider());
+ *
+ * // Use in-memory provider for testing (built-in)
  * const manager = TenantManager.getInstance();
  * const result = await manager.initializeTenant({
  *   tenantId: 'tenant-123',
@@ -45,6 +52,7 @@ export type { TenantIsolationResult } from './TenantManager';
 export type {
   // Provider types
   ProviderType,
+  BuiltInProviderType,
 
   // Configuration types
   TenantConfig,
@@ -69,18 +77,25 @@ export {
 } from './interfaces';
 
 // =============================================================================
+// Provider Registry
+// =============================================================================
+
+export { ProviderRegistry } from './providerRegistry';
+
+// =============================================================================
 // Provider Factory
 // =============================================================================
 
 export {
   createProvider,
   isValidProviderType,
+  isBuiltInProviderType,
   getSupportedProviders,
+  getBuiltInProviders,
 } from './providerFactory';
 
 // =============================================================================
-// Provider Implementations
+// Built-in Provider Implementations
 // =============================================================================
 
 export { InMemoryTenantProvider } from './providers/InMemoryTenantProvider';
-export { FirebaseTenantProvider } from './providers/FirebaseTenantProvider';

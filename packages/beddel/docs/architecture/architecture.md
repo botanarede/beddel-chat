@@ -375,13 +375,91 @@ class IsolatedRuntimeManager {
 │                              │                                       │
 │                              ▼                                       │
 │  ┌───────────────────────────────────────────────────────────────┐  │
-│  │  Layer 5: Tenant Isolation                                    │  │
-│  │  • Per-tenant Firebase apps                                   │  │
+│  │  Layer 5: Tenant Isolation (Provider-Agnostic)               │  │
+│  │  • ITenantProvider abstraction                               │  │
+│  │  • Swappable backends (Firebase, In-Memory, etc.)            │  │
 │  │  • Server-side data access only                               │  │
-│  │  • Audit logging                                              │  │
+│  │  • Audit logging with compliance (LGPD/GDPR)                 │  │
 │  └───────────────────────────────────────────────────────────────┘  │
 │                                                                      │
 └─────────────────────────────────────────────────────────────────────┘
+```
+
+### Tenant Provider Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        TenantManager                                 │
+│                        (Singleton)                                   │
+│                                                                      │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │                    ProviderRegistry                            │  │
+│  │                    (Dynamic Registration)                      │  │
+│  │                                                                │  │
+│  │  • register(type, factory)    Register external provider      │  │
+│  │  • unregister(type)           Remove provider                 │  │
+│  │  • create(type)               Create provider instance        │  │
+│  │  • isRegistered(type)         Check if registered             │  │
+│  │  • getRegisteredTypes()       List all providers              │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                              │                                       │
+│              ┌───────────────┼───────────────┐                      │
+│              ▼               ▼               ▼                      │
+│  ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐       │
+│  │ InMemoryProvider│ │ External        │ │  Future Provider │       │
+│  │   (Built-in)    │ │ Providers       │ │ (Supabase, etc.) │       │
+│  │                 │ │ (App-registered)│ │                  │       │
+│  └─────────────────┘ └─────────────────┘ └─────────────────┘       │
+│                                                                      │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │                    ITenantApp                                  │  │
+│  │  • tenantId: string                                           │  │
+│  │  • getDatabase() → ITenantDatabase                            │  │
+│  │  • destroy() → void                                           │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                              │                                       │
+│                              ▼                                       │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │  ITenantDatabase → ITenantCollection → ITenantDocument        │  │
+│  │  • collection(name)   • doc(id)          • get()              │  │
+│  │                       • add(data)        • set(data)          │  │
+│  │                       • get()            • update(data)       │  │
+│  │                                          • delete()           │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Provider Types
+
+| Provider | Type | Description |
+|----------|------|-------------|
+| `InMemoryTenantProvider` | `memory` | Built-in: In-memory storage for testing and development |
+| External Providers | varies | Application-registered providers (Firebase, Supabase, etc.) |
+
+### External Provider Registration
+
+Provider implementations that handle credentials should be external to the core package:
+
+```typescript
+import { ProviderRegistry } from 'beddel';
+import { FirebaseTenantProvider } from './providers/FirebaseTenantProvider';
+
+// Register during application bootstrap
+ProviderRegistry.register('firebase', () => new FirebaseTenantProvider());
+```
+
+### Tenant Configuration
+
+```typescript
+interface TenantConfig {
+  tenantId: string;
+  securityProfile: 'ultra-secure' | 'tenant-isolated';
+  dataRetentionDays: number;
+  lgpdEnabled: boolean;
+  gdprEnabled: boolean;
+  provider: 'firebase' | 'memory';
+  providerConfig: FirebaseProviderConfig | MemoryProviderConfig;
+}
 ```
 
 ### Security Configuration
@@ -389,9 +467,10 @@ class IsolatedRuntimeManager {
 ```typescript
 interface SecurityConfig {
   tenantIsolation: {
-    authentication: 'firebase-admin-sdk-server-side';
+    provider: 'firebase' | 'memory';  // Provider-agnostic
     dataAccess: 'server-side-only';
-    tenantSeparation: 'strict-user-id-filtering';
+    tenantSeparation: 'strict-tenant-id-filtering';
+    complianceEngines: ['lgpd', 'gdpr'];
   };
 
   yamlParser: {

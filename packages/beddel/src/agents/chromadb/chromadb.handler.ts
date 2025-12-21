@@ -91,27 +91,33 @@ export async function executeChromaDBHandler(
 
       context.log(`[ChromaDB] Searching ${collectionName}...`);
 
-      const collection = await chromaClient.getCollection({
-        name: collectionName,
-        embeddingFunction: undefined,
-      });
+      try {
+        const collection = await chromaClient.getCollection({
+          name: collectionName,
+          embeddingFunction: undefined,
+        });
 
-      const results = await collection.query({
-        queryEmbeddings: [queryVector],
-        nResults: limit,
-      });
+        const results = await collection.query({
+          queryEmbeddings: [queryVector],
+          nResults: limit,
+        });
 
-      const flatResults: ChromaDBSearchResult[] = (results.documents[0] || []).map(
-        (doc: string | null, idx: number) => ({
-          text: doc,
-          metadata: results.metadatas[0]?.[idx] || null,
-          distance: results.distances?.[0]?.[idx] || null,
-        })
-      );
+        const flatResults: ChromaDBSearchResult[] = (results.documents[0] || []).map(
+          (doc: string | null, idx: number) => ({
+            text: doc,
+            metadata: results.metadatas[0]?.[idx] || null,
+            distance: results.distances?.[0]?.[idx] || null,
+          })
+        );
 
-      const documentsString = flatResults.map((r) => r.text).join('\n\n---\n\n');
+        const documentsString = flatResults.map((r) => r.text).join('\n\n---\n\n');
 
-      return { success: true, results: flatResults, documents: documentsString };
+        return { success: true, results: flatResults, documents: documentsString };
+      } catch {
+        // Collection doesn't exist - return empty results
+        context.log(`[ChromaDB] Collection ${collectionName} not found, returning empty results`);
+        return { success: true, results: [], documents: '' };
+      }
 
     } else {
       throw new Error(`Unknown ChromaDB action: ${action}`);

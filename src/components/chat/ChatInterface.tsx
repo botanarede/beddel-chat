@@ -64,9 +64,9 @@ export function ChatInterface() {
       <div className="hidden lg:block h-full">
         <ResizablePanelGroup direction="horizontal" className="h-full rounded-lg">
           <ResizablePanel defaultSize={65} minSize={40}>
-            <Card className="h-full flex flex-col glass-card border-border/50 overflow-hidden">
+            <Card className="h-full flex flex-col glass-card border-border/50">
               {/* Header */}
-              <div className="p-6 border-b border-border/50">
+              <div className="p-6 border-b border-border/50 flex-shrink-0">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-xl bg-primary/10">
                     <Sparkles className="h-6 w-6 text-primary" />
@@ -81,26 +81,28 @@ export function ChatInterface() {
               </div>
 
               {/* Messages */}
-              <ScrollArea className="flex-1 p-6">
-                <div className="space-y-4">
-                  {messages.map((message, index) => (
-                    <ChatMessage key={index} message={message} />
-                  ))}
-                  {isLoading && (
-                    <div className="flex gap-4 mb-6">
-                      <Skeleton className="h-8 w-8 rounded-full" />
-                      <div className="space-y-2 flex-1">
-                        <Skeleton className="h-4 w-3/4" />
-                        <Skeleton className="h-4 w-1/2" />
+              <div className="flex-1 min-h-0">
+                <ScrollArea className="h-full">
+                  <div className="p-6 space-y-4">
+                    {messages.map((message, index) => (
+                      <ChatMessage key={index} message={message} />
+                    ))}
+                    {isLoading && (
+                      <div className="flex gap-4 mb-6">
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                        <div className="space-y-2 flex-1">
+                          <Skeleton className="h-4 w-3/4" />
+                          <Skeleton className="h-4 w-1/2" />
+                        </div>
                       </div>
-                    </div>
-                  )}
-                  <div ref={scrollRef} />
-                </div>
-              </ScrollArea>
+                    )}
+                    <div ref={scrollRef} />
+                  </div>
+                </ScrollArea>
+              </div>
 
               {/* Input */}
-              <div className="p-4 border-t border-border/50">
+              <div className="p-4 border-t border-border/50 flex-shrink-0">
                 <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} />
               </div>
             </Card>
@@ -118,8 +120,8 @@ export function ChatInterface() {
 
       {/* Mobile: Stacked with toggle */}
       <div className="lg:hidden h-full flex flex-col">
-        <Card className="flex-1 flex flex-col glass-card border-border/50 overflow-hidden">
-          <div className="p-4 border-b border-border/50 flex items-center justify-between">
+        <Card className="flex-1 flex flex-col glass-card border-border/50">
+          <div className="p-4 border-b border-border/50 flex items-center justify-between flex-shrink-0">
             <div className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary" />
               <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
@@ -132,25 +134,27 @@ export function ChatInterface() {
             </Button>
           </div>
 
-          <ScrollArea className="flex-1 p-4">
-            <div className="space-y-4">
-              {messages.map((message, index) => (
-                <ChatMessage key={index} message={message} />
-              ))}
-              {isLoading && (
-                <div className="flex gap-4 mb-6">
-                  <Skeleton className="h-8 w-8 rounded-full" />
-                  <div className="space-y-2 flex-1">
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-4 w-1/2" />
+          <div className="flex-1 min-h-0">
+            <ScrollArea className="h-full">
+              <div className="p-4 space-y-4">
+                {messages.map((message, index) => (
+                  <ChatMessage key={index} message={message} />
+                ))}
+                {isLoading && (
+                  <div className="flex gap-4 mb-6">
+                    <Skeleton className="h-8 w-8 rounded-full" />
+                    <div className="space-y-2 flex-1">
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-4 w-1/2" />
+                    </div>
                   </div>
-                </div>
-              )}
-              <div ref={scrollRef} />
-            </div>
-          </ScrollArea>
+                )}
+                <div ref={scrollRef} />
+              </div>
+            </ScrollArea>
+          </div>
 
-          <div className="p-4 border-t border-border/50">
+          <div className="p-4 border-t border-border/50 flex-shrink-0">
             <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} />
           </div>
         </Card>

@@ -1,4 +1,4 @@
-# Source files (already compiled to dist/)
+# Source files (keep YAML for runtime)
 *.ts
 !*.d.ts
 tsconfig*.json
@@ -52,3 +52,9 @@ package-lock.json
 .env.*.local
 coverage/
 .nyc_output/
+
+# Development scripts
+audit.js
+benchmark-demo.ts
+test-parser.ts
+simple-test.js

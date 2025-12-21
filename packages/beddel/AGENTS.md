@@ -14,7 +14,7 @@ This document provides essential context for AI agents and developers working on
 - **Isolated runtime environments** with sandboxed execution
 - **Declarative agent definitions** via YAML manifests
 - **Built-in compliance** (GDPR/LGPD) and audit trails
-- **Multi-tenant Firebase support** with tenant isolation
+- **Provider-agnostic multi-tenant support** with swappable backends (Firebase, in-memory, etc.)
 
 **Target Users**: Backend teams embedding declarative YAML agents in Node.js services.
 
@@ -32,7 +32,7 @@ This document provides essential context for AI agents and developers working on
 | `src/security` | Threat detection, scoring, hardening | `SecurityScanner` |
 | `src/compliance` | GDPR/LGPD compliance engines | `GDPRCompliance`, `LGPDCompliance` |
 | `src/audit` | Hash-based audit trail logging | `AuditTrail` |
-| `src/firebase` | Multi-tenant Firebase management | `MultiTenantFirebaseManager` |
+| `src/tenant` | Provider-agnostic multi-tenant management | `TenantManager`, `ProviderRegistry`, `ITenantProvider` |
 | `src/performance` | Monitoring, autoscaling, benchmarking | `PerformanceMonitor` |
 | `src/integration` | High-level runtime glue | `SecureYamlRuntime` |
 
@@ -185,10 +185,102 @@ node packages/beddel/tests/test-runtime-security.js
 - `src/security/*` — Core security logic; changes require thorough review
 - `src/parser/SecureYamlParser.ts` — Parsing security; modifications need justification
 - `src/runtime/IsolatedRuntimeManager.ts` — Sandbox isolation; high-risk changes
+- `src/tenant/*` — Multi-tenant isolation; provider changes require review
 
 ---
 
-## 8. Documentation Sync Duties
+## 8. Multi-Tenant Architecture
+
+### Provider-Agnostic Design
+
+The tenant module implements a Strategy pattern for swappable backends:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        TenantManager                                 │
+│                                                                      │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │                    ProviderRegistry                            │  │
+│  │                    (Dynamic Registration)                      │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                              │                                       │
+│              ┌───────────────┼───────────────┐                      │
+│              ▼               ▼               ▼                      │
+│  ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐       │
+│  │ InMemoryProvider│ │ External        │ │  Future Provider │       │
+│  │   (Built-in)    │ │ Providers       │ │ (Supabase, etc.) │       │
+│  │                 │ │ (App-registered)│ │                  │       │
+│  └─────────────────┘ └─────────────────┘ └─────────────────┘       │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Core Interfaces
+
+| Interface | Purpose |
+|-----------|---------|
+| `ITenantProvider` | Abstract provider for tenant management (initialize, get, remove, list) |
+| `ITenantApp` | Isolated tenant instance with database access |
+| `ITenantDatabase` | Database interface for tenant data operations |
+| `ITenantCollection` | Collection interface for document operations |
+| `ITenantDocument` | Document interface for CRUD operations |
+
+### Built-in Providers
+
+| Provider | Type | Use Case |
+|----------|------|----------|
+| `InMemoryTenantProvider` | `memory` | Testing, development, stateless scenarios |
+
+### External Providers
+
+Provider implementations that handle credentials (Firebase, Supabase, etc.) should be implemented in the consuming application for security reasons. Use `ProviderRegistry` to register custom providers:
+
+```typescript
+import { ProviderRegistry } from 'beddel';
+import { FirebaseTenantProvider } from './providers/FirebaseTenantProvider';
+
+// Register during application bootstrap
+ProviderRegistry.register('firebase', () => new FirebaseTenantProvider());
+
+// Then use with TenantManager
+const manager = TenantManager.getInstance();
+await manager.initializeTenant({
+  tenantId: 'tenant-123',
+  provider: 'firebase',
+  providerConfig: { projectId: '...', databaseURL: '...', storageBucket: '...' },
+  // ... other config
+});
+```
+
+### Usage Example
+
+```typescript
+import { TenantManager, createProvider } from 'beddel';
+
+// Get singleton instance
+const manager = TenantManager.getInstance();
+
+// Initialize tenant with in-memory provider (testing)
+const result = await manager.initializeTenant({
+  tenantId: 'tenant-123',
+  securityProfile: 'tenant-isolated',
+  dataRetentionDays: 365,
+  lgpdEnabled: true,
+  gdprEnabled: true,
+  provider: 'memory',
+  providerConfig: {}
+});
+
+// Execute operations in tenant context
+await manager.executeInTenant('tenant-123', 'data_write', { key: 'value' }, async () => {
+  const app = manager.getTenantApp('tenant-123');
+  const db = app.getDatabase();
+  await db.collection('users').add({ name: 'Alice' });
+});
+```
+
+---
+
+## 9. Documentation Sync Duties
 
 When making changes, ensure documentation stays synchronized:
 
@@ -199,10 +291,11 @@ When making changes, ensure documentation stays synchronized:
 | New agents | Add to agent catalog in this file |
 | Spec changes | Reflect in `docs/beddel` |
 | Schema changes | Document in interpreter section |
+| Tenant providers | Update tenant architecture section |
 
 ---
 
-## 9. Contribution Checklist
+## 10. Contribution Checklist
 
 Before submitting changes:
 
@@ -216,7 +309,7 @@ Before submitting changes:
 
 ---
 
-## 10. Handling Uncertainty
+## 11. Handling Uncertainty
 
 When encountering ambiguous requirements or edge cases:
 
@@ -227,7 +320,7 @@ When encountering ambiguous requirements or edge cases:
 
 ---
 
-## 11. Git Workflow
+## 12. Git Workflow
 
 ### Commit Message Format
 

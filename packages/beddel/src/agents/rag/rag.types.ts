@@ -11,6 +11,13 @@ export interface ConversationMessage {
 }
 
 /**
+ * RAG execution mode
+ * - 'rag': Uses provided documents/context for answer generation
+ * - 'simple': Direct LLM chat without document context
+ */
+export type RagMode = 'rag' | 'simple';
+
+/**
  * Parameters for RAG answer generation
  */
 export interface RagHandlerParams {
@@ -18,6 +25,7 @@ export interface RagHandlerParams {
   context?: string;
   documents?: string;
   history?: ConversationMessage[];
+  mode?: RagMode;
 }
 
 /**

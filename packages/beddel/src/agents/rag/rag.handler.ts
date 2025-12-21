@@ -3,6 +3,7 @@ import 'server-only';
 /**
  * RAG Agent Handler - Server-only execution logic
  * Generates natural language answers based on provided context using Gemini
+ * Supports both RAG mode (with documents) and simple chat mode (conversation only)
  */
 
 import { generateText } from 'ai';
@@ -13,38 +14,35 @@ import type { RagHandlerParams, RagHandlerResult, ConversationMessage } from './
 const GEMINI_RAG_MODEL = 'models/gemini-2.0-flash-exp';
 
 /**
- * Execute RAG answer generation
+ * Build prompt for simple chat mode (no documents)
  */
-export async function executeRagHandler(
-  params: RagHandlerParams,
-  props: Record<string, string>,
-  context: ExecutionContext
-): Promise<RagHandlerResult> {
-  const apiKey = props?.gemini_api_key?.trim();
-  if (!apiKey) {
-    throw new Error('Missing required prop: gemini_api_key');
-  }
-
-  const query = params.query;
-  const ragContext = params.context || params.documents;
-  const history = params.history;
-
-  if (!query) {
-    throw new Error('Missing required RAG input: query');
-  }
-  if (!ragContext) {
-    throw new Error('Missing required RAG input: context or documents');
-  }
-
-  const google = createGoogleGenerativeAI({ apiKey });
-  const model = google(GEMINI_RAG_MODEL);
-
-  // Build conversation history context
+function buildSimpleChatPrompt(query: string, history?: ConversationMessage[]): string {
   const conversationContext = history?.length
-    ? `CONVERSATION HISTORY:\n${history.map((m: ConversationMessage) => `${m.role.toUpperCase()}: ${m.content}`).join('\n')}\n\n`
+    ? `CONVERSATION HISTORY:\n${history.map((m) => `${m.role.toUpperCase()}: ${m.content}`).join('\n')}\n\n`
     : '';
 
-  const prompt = `You are a helpful and expert assistant for the Beddel Protocol.
+  return `You are a helpful, friendly assistant.
+
+${conversationContext}USER MESSAGE:
+${query}
+
+INSTRUCTIONS:
+1. Respond naturally to the user's message.
+2. Consider the conversation history for context continuity if available.
+3. Be concise but helpful.
+
+RESPONSE:`;
+}
+
+/**
+ * Build prompt for RAG mode (with documents)
+ */
+function buildRagPrompt(query: string, ragContext: string, history?: ConversationMessage[]): string {
+  const conversationContext = history?.length
+    ? `CONVERSATION HISTORY:\n${history.map((m) => `${m.role.toUpperCase()}: ${m.content}`).join('\n')}\n\n`
+    : '';
+
+  return `You are a helpful and expert assistant for the Beddel Protocol.
 
 ${conversationContext}CONTEXT INFORMATION:
 ${ragContext}
@@ -59,14 +57,47 @@ INSTRUCTIONS:
 4. Be concise but comprehensive.
 
 ANSWER:`;
+}
+
+/**
+ * Execute RAG answer generation
+ */
+export async function executeRagHandler(
+  params: RagHandlerParams,
+  props: Record<string, string>,
+  context: ExecutionContext
+): Promise<RagHandlerResult> {
+  const apiKey = props?.gemini_api_key?.trim();
+  if (!apiKey) {
+    throw new Error('Missing required prop: gemini_api_key');
+  }
+
+  const { query, history, mode = 'rag' } = params;
+  const ragContext = params.context || params.documents;
+
+  if (!query) {
+    throw new Error('Missing required RAG input: query');
+  }
+
+  // Simple mode doesn't require documents
+  if (mode === 'rag' && !ragContext) {
+    throw new Error('Missing required RAG input: context or documents');
+  }
+
+  const google = createGoogleGenerativeAI({ apiKey });
+  const model = google(GEMINI_RAG_MODEL);
+
+  const prompt = mode === 'simple'
+    ? buildSimpleChatPrompt(query, history)
+    : buildRagPrompt(query, ragContext!, history);
 
   try {
-    context.log(`[RAG] Generating answer for query: "${query.substring(0, 50)}..."`);
+    context.log(`[RAG:${mode}] Generating answer for: "${query.substring(0, 50)}..."`);
 
     const { text } = await generateText({
       model,
       prompt,
-      temperature: 0.3,
+      temperature: mode === 'simple' ? 0.7 : 0.3,
     });
 
     return {

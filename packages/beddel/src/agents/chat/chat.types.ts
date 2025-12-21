@@ -6,11 +6,19 @@ import type { ConversationMessage } from '../rag/rag.types';
 import type { ExecutionStep } from '../../shared/types/agent.types';
 
 /**
+ * Chat mode determines the execution flow
+ * - 'rag': Full RAG pipeline with knowledge base (default)
+ * - 'simple': Direct LLM chat maintaining conversation context only
+ */
+export type ChatMode = 'rag' | 'simple';
+
+/**
  * Parameters for chat orchestration
  */
 export interface ChatHandlerParams {
   messages: ConversationMessage[];
   query?: string;
+  mode?: ChatMode;
   knowledge_sources?: string[];
 }
 

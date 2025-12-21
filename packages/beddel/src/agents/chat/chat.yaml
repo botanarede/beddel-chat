@@ -9,7 +9,7 @@ agent:
 
 metadata:
   name: "Q&A Context Chat Agent"
-  description: "Orchestrates RAG pipeline: vectorization, storage, retrieval and answer generation"
+  description: "Orchestrates RAG pipeline or simple chat based on mode selection"
   category: "chat"
   route: "/agents/chat"
   knowledge_sources:
@@ -19,6 +19,7 @@ metadata:
     - "orchestrator"
     - "rag"
     - "qa"
+    - "simple"
 
 schema:
   input:
@@ -39,6 +40,11 @@ schema:
       query:
         type: "string"
         description: "Direct query (alternative to messages)"
+      mode:
+        type: "string"
+        enum: ["rag", "simple"]
+        default: "rag"
+        description: "Chat mode: 'rag' for knowledge-based answers, 'simple' for direct LLM chat"
       knowledge_sources:
         type: "array"
         items:
@@ -81,43 +87,55 @@ logic:
         output:
           _extracted: true
 
-    # Step 2: Vectorize user query
-    - name: "vectorize-query"
-      type: "gemini-vectorize"
-      action:
-        action: "embedSingle"
-        text: "$input.query"
-        result: "queryVector"
+    # Step 2: Mode branch - Simple chat or RAG pipeline
+    - name: "mode-check"
+      type: "conditional"
+      condition: "$input.mode == 'simple'"
+      then:
+        # Simple mode: Direct LLM chat with conversation history
+        - name: "simple-chat"
+          type: "rag"
+          action:
+            query: "$input.query"
+            history: "$input.messages"
+            mode: "simple"
+            result: "ragResult"
+      else:
+        # RAG mode: Full pipeline with knowledge base
+        - name: "vectorize-query"
+          type: "gemini-vectorize"
+          action:
+            action: "embedSingle"
+            text: "$input.query"
+            result: "queryVector"
 
-    # Step 3: Check if knowledge base has data
-    - name: "check-knowledge"
-      type: "chromadb"
-      action:
-        action: "hasData"
-        collection_name: "beddel_knowledge"
-        min_count: 5
-        result: "hasDataResult"
+        - name: "check-knowledge"
+          type: "chromadb"
+          action:
+            action: "hasData"
+            collection_name: "beddel_knowledge"
+            min_count: 5
+            result: "hasDataResult"
 
-    # Step 4: Search knowledge base
-    - name: "search-knowledge"
-      type: "chromadb"
-      action:
-        action: "search"
-        collection_name: "beddel_knowledge"
-        query_vector: "$queryVector.vector"
-        limit: 5
-        result: "searchResult"
+        - name: "search-knowledge"
+          type: "chromadb"
+          action:
+            action: "search"
+            collection_name: "beddel_knowledge"
+            query_vector: "$queryVector.vector"
+            limit: 5
+            result: "searchResult"
 
-    # Step 5: Generate answer using RAG
-    - name: "generate-answer"
-      type: "rag"
-      action:
-        query: "$input.query"
-        documents: "$searchResult.documents"
-        history: "$input.messages"
-        result: "ragResult"
+        - name: "generate-answer"
+          type: "rag"
+          action:
+            query: "$input.query"
+            documents: "$searchResult.documents"
+            history: "$input.messages"
+            mode: "rag"
+            result: "ragResult"
 
-    # Step 6: Deliver final response
+    # Step 3: Deliver final response
     - name: "deliver-response"
       type: "output-generator"
       action:

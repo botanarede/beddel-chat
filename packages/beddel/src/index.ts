@@ -102,21 +102,16 @@ export { AuditService } from "./runtime/audit";
 export { PerformanceMonitor } from "./performance/monitor";
 export { default as AutoScaler } from "./performance/autoscaling";
 
-// Multi-Tenant Firebase exports (deprecated - use tenant module instead)
-export { MultiTenantFirebaseManager } from "./firebase/tenantManager";
-export type {
-  TenantConfig as LegacyTenantConfig,
-  TenantIsolationResult as LegacyTenantIsolationResult,
-} from "./firebase/tenantManager";
-
-// Agnostic Multi-Tenant exports (recommended)
+// Agnostic Multi-Tenant exports
 export {
   TenantManager,
+  ProviderRegistry,
   createProvider,
   isValidProviderType,
+  isBuiltInProviderType,
   getSupportedProviders,
+  getBuiltInProviders,
   InMemoryTenantProvider,
-  FirebaseTenantProvider,
   TenantError,
   ValidationError,
   NotFoundError,
@@ -127,6 +122,7 @@ export type {
   TenantConfig,
   TenantIsolationResult,
   ProviderType,
+  BuiltInProviderType,
   FirebaseProviderConfig,
   MemoryProviderConfig,
   ITenantProvider,

@@ -1,10 +1,18 @@
 /**
  * Firebase Tenant Provider
  * Implements ITenantProvider using Firebase Admin SDK
- * Extracted from MultiTenantFirebaseManager for provider-agnostic architecture
+ * 
+ * This provider is external to the beddel package for security reasons.
+ * Credential-handling providers should be managed by the consuming application.
+ * 
+ * NOTE: firebase-admin is an optional peer dependency.
+ * Install it separately if you want to use Firebase as a tenant provider:
+ * 
+ * ```bash
+ * pnpm add firebase-admin
+ * ```
  */
 
-import * as admin from 'firebase-admin';
 import {
   ITenantProvider,
   ITenantApp,
@@ -13,11 +21,60 @@ import {
   ITenantDocument,
   TenantConfig,
   ProviderType,
-  FirebaseProviderConfig,
   NotFoundError,
   ValidationError,
   TenantAlreadyExistsError,
-} from '../interfaces';
+} from 'beddel';
+
+/**
+ * Firebase-specific provider configuration
+ */
+export interface FirebaseProviderConfig {
+  projectId: string;
+  databaseURL: string;
+  storageBucket: string;
+}
+
+// Dynamic import type for firebase-admin
+type FirebaseAdmin = typeof import('firebase-admin');
+
+// Lazy-loaded firebase-admin module
+let firebaseAdmin: FirebaseAdmin | null = null;
+
+/**
+ * Dynamically load firebase-admin module
+ * @throws Error if firebase-admin is not installed
+ */
+async function loadFirebaseAdmin(): Promise<FirebaseAdmin> {
+  if (firebaseAdmin) {
+    return firebaseAdmin;
+  }
+
+  try {
+    // Dynamic import to avoid bundling firebase-admin when not used
+    firebaseAdmin = await import('firebase-admin');
+    return firebaseAdmin;
+  } catch {
+    throw new Error(
+      'firebase-admin is not installed. Install it with: pnpm add firebase-admin\n' +
+      'Firebase provider requires firebase-admin as a peer dependency.'
+    );
+  }
+}
+
+/**
+ * Synchronously get firebase-admin (must be loaded first via loadFirebaseAdmin)
+ * @throws Error if firebase-admin was not loaded
+ */
+function getFirebaseAdmin(): FirebaseAdmin {
+  if (!firebaseAdmin) {
+    throw new Error(
+      'firebase-admin not loaded. Ensure initialize() was called first.'
+    );
+  }
+  return firebaseAdmin;
+}
+
 
 // =============================================================================
 // Firebase Document Implementation
@@ -25,7 +82,7 @@ import {
 
 class FirebaseDocument implements ITenantDocument {
   constructor(
-    private docRef: admin.firestore.DocumentReference
+    private docRef: import('firebase-admin').firestore.DocumentReference
   ) {}
 
   async get(): Promise<Record<string, unknown> | null> {
@@ -59,7 +116,7 @@ class FirebaseDocument implements ITenantDocument {
 
 class FirebaseCollection implements ITenantCollection {
   constructor(
-    private collectionRef: admin.firestore.CollectionReference
+    private collectionRef: import('firebase-admin').firestore.CollectionReference
   ) {}
 
   doc(id: string): ITenantDocument {
@@ -73,7 +130,7 @@ class FirebaseCollection implements ITenantCollection {
 
   async get(): Promise<Array<{ id: string; data: Record<string, unknown> }>> {
     const snapshot = await this.collectionRef.get();
-    return snapshot.docs.map(doc => ({
+    return snapshot.docs.map((doc: import('firebase-admin').firestore.QueryDocumentSnapshot) => ({
       id: doc.id,
       data: doc.data() as Record<string, unknown>,
     }));
@@ -86,7 +143,7 @@ class FirebaseCollection implements ITenantCollection {
 
 class FirebaseDatabase implements ITenantDatabase {
   constructor(
-    private firestore: admin.firestore.Firestore,
+    private firestore: import('firebase-admin').firestore.Firestore,
     private tenantId: string
   ) {}
 
@@ -96,6 +153,86 @@ class FirebaseDatabase implements ITenantDatabase {
     return new FirebaseCollection(this.firestore.collection(namespacedPath));
   }
 }
+
+
+// =============================================================================
+// Firebase Document Implementation
+// =============================================================================
+
+class FirebaseDocument implements ITenantDocument {
+  constructor(
+    private docRef: import('firebase-admin').firestore.DocumentReference
+  ) {}
+
+  async get(): Promise<Record<string, unknown> | null> {
+    const snapshot = await this.docRef.get();
+    if (!snapshot.exists) {
+      return null;
+    }
+    return snapshot.data() as Record<string, unknown>;
+  }
+
+  async set(data: Record<string, unknown>): Promise<void> {
+    await this.docRef.set(data);
+  }
+
+  async update(data: Record<string, unknown>): Promise<void> {
+    const snapshot = await this.docRef.get();
+    if (!snapshot.exists) {
+      throw new NotFoundError(`Document '${this.docRef.id}' not found`);
+    }
+    await this.docRef.update(data);
+  }
+
+  async delete(): Promise<void> {
+    await this.docRef.delete();
+  }
+}
+
+// =============================================================================
+// Firebase Collection Implementation
+// =============================================================================
+
+class FirebaseCollection implements ITenantCollection {
+  constructor(
+    private collectionRef: import('firebase-admin').firestore.CollectionReference
+  ) {}
+
+  doc(id: string): ITenantDocument {
+    return new FirebaseDocument(this.collectionRef.doc(id));
+  }
+
+  async add(data: Record<string, unknown>): Promise<string> {
+    const docRef = await this.collectionRef.add(data);
+    return docRef.id;
+  }
+
+  async get(): Promise<Array<{ id: string; data: Record<string, unknown> }>> {
+    const snapshot = await this.collectionRef.get();
+    return snapshot.docs.map((doc: import('firebase-admin').firestore.QueryDocumentSnapshot) => ({
+      id: doc.id,
+      data: doc.data() as Record<string, unknown>,
+    }));
+  }
+}
+
+// =============================================================================
+// Firebase Database Implementation
+// =============================================================================
+
+class FirebaseDatabase implements ITenantDatabase {
+  constructor(
+    private firestore: import('firebase-admin').firestore.Firestore,
+    private tenantId: string
+  ) {}
+
+  collection(name: string): ITenantCollection {
+    // Namespace collections under tenant ID for isolation
+    const namespacedPath = `tenants/${this.tenantId}/${name}`;
+    return new FirebaseCollection(this.firestore.collection(namespacedPath));
+  }
+}
+
 
 // =============================================================================
 // Firebase Tenant App Implementation
@@ -107,7 +244,7 @@ class FirebaseTenantApp implements ITenantApp {
 
   constructor(
     public readonly tenantId: string,
-    private firebaseApp: admin.app.App,
+    private firebaseApp: import('firebase-admin').app.App,
     private readonly _config: TenantConfig
   ) {
     this.database = new FirebaseDatabase(firebaseApp.firestore(), tenantId);
@@ -132,7 +269,7 @@ class FirebaseTenantApp implements ITenantApp {
    * Get the underlying Firebase app (for advanced operations)
    * @internal
    */
-  getFirebaseApp(): admin.app.App {
+  getFirebaseApp(): import('firebase-admin').app.App {
     if (this.destroyed) {
       throw new NotFoundError(`Tenant '${this.tenantId}' has been destroyed`);
     }
@@ -155,10 +292,23 @@ class FirebaseTenantApp implements ITenantApp {
 /**
  * Firebase implementation of ITenantProvider
  * Provides multi-tenant isolation using Firebase Admin SDK
+ * 
+ * NOTE: firebase-admin must be installed separately as a peer dependency.
  */
 export class FirebaseTenantProvider implements ITenantProvider {
   public readonly type: ProviderType = 'firebase';
   private tenants: Map<string, FirebaseTenantApp> = new Map();
+  private initialized = false;
+
+  /**
+   * Ensure firebase-admin is loaded before use
+   */
+  private async ensureFirebaseLoaded(): Promise<void> {
+    if (!this.initialized) {
+      await loadFirebaseAdmin();
+      this.initialized = true;
+    }
+  }
 
   /**
    * Validate Firebase-specific provider configuration
@@ -207,6 +357,10 @@ export class FirebaseTenantProvider implements ITenantProvider {
   }
 
   async initialize(config: TenantConfig): Promise<ITenantApp> {
+    // Ensure firebase-admin is loaded
+    await this.ensureFirebaseLoaded();
+    const admin = getFirebaseAdmin();
+
     // Validate configurations
     this.validateTenantConfig(config);
     const firebaseConfig = this.validateFirebaseConfig(config);

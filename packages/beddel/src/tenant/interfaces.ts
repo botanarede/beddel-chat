@@ -8,9 +8,14 @@
 // =============================================================================
 
 /**
- * Supported provider types for multi-tenant backend
+ * Built-in provider type
  */
-export type ProviderType = 'firebase' | 'memory';
+export type BuiltInProviderType = 'memory';
+
+/**
+ * Provider type accepts built-in or any registered external type
+ */
+export type ProviderType = BuiltInProviderType | string;
 
 // =============================================================================
 // Provider-Specific Configurations

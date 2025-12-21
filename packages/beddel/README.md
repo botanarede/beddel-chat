@@ -428,7 +428,7 @@ const result = await agentRegistry.executeAgent(
 | **Security** | `SecurityScanner`, `ThreatDetectionEngine` | Static scanning, scoring |
 | **Compliance** | `GDPRCompliance`, `LGPDCompliance` | Audit, anonymization |
 | **Performance** | `PerformanceMonitor`, `AutoScaler` | Metrics, scaling |
-| **Multi-tenancy** | `MultiTenantFirebaseManager` | Firebase tenant isolation |
+| **Multi-tenancy** | `TenantManager`, `ITenantProvider` | Provider-agnostic tenant isolation |
 
 ### Secure YAML Parsing
 
@@ -514,6 +514,65 @@ Supported types: `string`, `number`, `boolean`, `object`, `array`
 
 ---
 
+## Multi-Tenant Architecture
+
+Beddel provides a provider-agnostic multi-tenant system with a dynamic registry for external providers.
+
+### Built-in Providers
+
+| Provider | Type | Use Case |
+|----------|------|----------|
+| `InMemoryTenantProvider` | `memory` | Testing, development |
+
+### External Providers
+
+Provider implementations that handle credentials (Firebase, Supabase, etc.) should be implemented in the consuming application. Use `ProviderRegistry` to register custom providers:
+
+```typescript
+import { ProviderRegistry } from "beddel";
+import { FirebaseTenantProvider } from "./providers/FirebaseTenantProvider";
+
+// Register during application bootstrap
+ProviderRegistry.register('firebase', () => new FirebaseTenantProvider());
+```
+
+### Quick Start
+
+```typescript
+import { TenantManager } from "beddel";
+
+const manager = TenantManager.getInstance();
+
+// Initialize tenant
+const result = await manager.initializeTenant({
+  tenantId: "tenant-123",
+  securityProfile: "tenant-isolated",
+  dataRetentionDays: 365,
+  lgpdEnabled: true,
+  gdprEnabled: true,
+  provider: "memory", // or registered external provider like "firebase"
+  providerConfig: {}
+});
+
+// Execute in tenant context
+await manager.executeInTenant("tenant-123", "operation", data, async () => {
+  const app = manager.getTenantApp("tenant-123");
+  const db = app.getDatabase();
+  await db.collection("users").add({ name: "Alice" });
+});
+```
+
+### Core Interfaces
+
+- `ITenantProvider` — Abstract provider for tenant management
+- `ITenantApp` — Isolated tenant instance
+- `ITenantDatabase` — Database operations
+- `ITenantCollection` — Collection operations
+- `ITenantDocument` — Document CRUD
+- `ProviderRegistry` — Dynamic provider registration
+
+---
+
 ## Security
 
 ### Multi-Layer Security Model
@@ -571,7 +630,13 @@ src/
 ├── security/                # Scanning and threat detection
 ├── compliance/              # GDPR/LGPD utilities
 ├── performance/             # Monitoring and autoscaling
-├── firebase/                # Multi-tenant management
+├── tenant/                  # Provider-agnostic multi-tenant management
+│   ├── TenantManager.ts     # Singleton tenant orchestrator
+│   ├── interfaces.ts        # ITenantProvider, ITenantApp, etc.
+│   ├── providerFactory.ts   # Provider instantiation
+│   ├── providerRegistry.ts  # Dynamic provider registration
+│   └── providers/           # Built-in provider implementations
+│       └── InMemoryTenantProvider.ts
 └── index.ts                 # Public exports
 ```
 
