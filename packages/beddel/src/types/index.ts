@@ -1,5 +1,5 @@
 /**
- * Beddel 2.6 - Type Definitions
+ * Beddel Protocol - Type Definitions
  * Core interfaces for the workflow engine
  */
 
@@ -40,3 +40,23 @@ export interface ParsedYaml {
     metadata: YamlMetadata;
     workflow: WorkflowStep[];
 }
+
+/**
+ * Execution context passed to primitive handlers
+ * Holds input data and accumulated step results
+ */
+export interface ExecutionContext {
+    /** Original input passed to WorkflowExecutor.execute() */
+    input: unknown;
+    /** Map of step results keyed by step.result name */
+    variables: Map<string, unknown>;
+}
+
+/**
+ * Contract for primitive handlers (llm, output-generator, call-agent)
+ * Handlers may return Response (streaming) or Record (data for next step)
+ */
+export type PrimitiveHandler = (
+    config: StepConfig,
+    context: ExecutionContext
+) => Promise<Response | Record<string, unknown>>;

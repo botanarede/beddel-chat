@@ -1,4 +1,4 @@
-# Beddel 2.6 - Implementation Prompts
+# Beddel Protocol - Implementation Prompts
 
 > **Usage:** Copy each prompt into a new Claude/Gemini session  
 > **MCP:** Use `context7` to fetch latest AI SDK docs when needed
@@ -8,13 +8,13 @@
 ## Task 1.1: Clean Setup
 
 ```
-You are implementing Task 1.1 of Beddel 2.6.
+You are implementing Task 1.1 of Beddel Protocol.
 
 **Objective:** Create a properly configured TypeScript package.
 
 **Context:**
-- Working directory: packages/beddel-2.6/
-- Consult @[packages/beddel-2.6/setup.md] for architecture overview
+- Working directory: packages/beddel/
+- Consult @[packages/beddel/setup.md] for architecture overview
 
 **Steps:**
 1. Initialize package.json with:
@@ -44,13 +44,13 @@ You are implementing Task 1.1 of Beddel 2.6.
 ## Task 1.2: Secure Parser
 
 ```
-You are implementing Task 1.2 of Beddel 2.6.
+You are implementing Task 1.2 of Beddel Protocol.
 
 **Objective:** Create a secure YAML parser that prevents code execution.
 
 **Context:**
-- Working directory: packages/beddel-2.6/
-- Consult @[packages/beddel-2.6/setup.md] Section 4.1.2
+- Working directory: packages/beddel/
+- Consult @[packages/beddel/setup.md] Section 4.1.2
 
 **Steps:**
 1. Create src/core/parser.ts with:
@@ -81,13 +81,13 @@ You are implementing Task 1.2 of Beddel 2.6.
 ## Task 1.3: Workflow Executor
 
 ```
-You are implementing Task 1.3 of Beddel 2.6.
+You are implementing Task 1.3 of Beddel Protocol.
 
 **Objective:** Create the WorkflowExecutor class that iterates over steps.
 
 **Context:**
-- Working directory: packages/beddel-2.6/
-- Consult @[packages/beddel-2.6/setup.md] Section 5 (Core Code Guide)
+- Working directory: packages/beddel/
+- Consult @[packages/beddel/setup.md] Section 5 (Core Code Guide)
 
 **Steps:**
 1. Create src/core/workflow.ts with:
@@ -120,13 +120,13 @@ You are implementing Task 1.3 of Beddel 2.6.
 ## Task 2.1: Handler & Tool Registries
 
 ```
-You are implementing Task 2.1 of Beddel 2.6.
+You are implementing Task 2.1 of Beddel Protocol.
 
 **Objective:** Create extensible registries for primitives and tools.
 
 **Context:**
-- Working directory: packages/beddel-2.6/
-- Consult @[packages/beddel-2.6/setup.md] Section 3 (Core Primitives)
+- Working directory: packages/beddel/
+- Consult @[packages/beddel/setup.md] Section 3 (Core Primitives)
 
 **Steps:**
 1. Create src/primitives/index.ts:
@@ -166,13 +166,13 @@ calculator: {
 ## Task 2.2: LLM Primitive
 
 ```
-You are implementing Task 2.2 of Beddel 2.6.
+You are implementing Task 2.2 of Beddel Protocol.
 
 **Objective:** Create the core LLM primitive with dual-mode support.
 
 **Context:**
-- Working directory: packages/beddel-2.6/
-- Consult @[packages/beddel-2.6/setup.md] Section 5 (LLM Primitive code)
+- Working directory: packages/beddel/
+- Consult @[packages/beddel/setup.md] Section 5 (LLM Primitive code)
 
 **MCP Instructions:**
 - Use context7 to fetch Vercel AI SDK docs for streamText and generateText
@@ -210,13 +210,13 @@ You are implementing Task 2.2 of Beddel 2.6.
 ## Task 2.3: Output Primitive
 
 ```
-You are implementing Task 2.3 of Beddel 2.6.
+You are implementing Task 2.3 of Beddel Protocol.
 
 **Objective:** Create the output-generator primitive for JSON transforms.
 
 **Context:**
-- Working directory: packages/beddel-2.6/
-- Consult @[packages/beddel-2.6/setup.md] Section 4.2.3
+- Working directory: packages/beddel/
+- Consult @[packages/beddel/setup.md] Section 4.2.3
 
 **Steps:**
 1. Create src/primitives/output.ts:
@@ -247,14 +247,14 @@ config:
 ## Task 2.4: Lifecycle Hooks
 
 ```
-You are implementing Task 2.4 of Beddel 2.6.
+You are implementing Task 2.4 of Beddel Protocol.
 
 **Objective:** Add onFinish and onError callback support to llmPrimitive.
 
 **Context:**
-- Working directory: packages/beddel-2.6/
-- Consult @[packages/beddel-2.6/setup.md] Section 5 (updated llmPrimitive code)
-- Consult @[packages/beddel-2.6/docs/architecture/core-workflows.md] for flow diagram
+- Working directory: packages/beddel/
+- Consult @[packages/beddel/setup.md] Section 5 (updated llmPrimitive code)
+- Consult @[packages/beddel/docs/architecture/core-workflows.md] for flow diagram
 
 **MCP Instructions:**
 - Use context7 to verify onFinish callback signature in AI SDK streamText
@@ -290,14 +290,14 @@ config:
 ## Task 3.1: API Route
 
 ```
-You are implementing Task 3.1 of Beddel 2.6.
+You are implementing Task 3.1 of Beddel Protocol.
 
 **Objective:** Create a REST endpoint for chat interactions.
 
 **Context:**
 - This task creates a SAMPLE route for consumers to copy
-- Working directory: packages/beddel-2.6/
-- Consult @[packages/beddel-2.6/setup.md] Section 7 (API Route Example)
+- Working directory: packages/beddel/
+- Consult @[packages/beddel/setup.md] Section 7 (API Route Example)
 
 **Steps:**
 1. Create examples/api-route.ts (not in src/):
@@ -335,13 +335,13 @@ export async function POST(request: NextRequest) {
 ## Task 3.2: Sample Assistant
 
 ```
-You are implementing Task 3.2 of Beddel 2.6.
+You are implementing Task 3.2 of Beddel Protocol.
 
 **Objective:** Create a working example agent YAML file.
 
 **Context:**
-- Working directory: packages/beddel-2.6/
-- Consult @[packages/beddel-2.6/setup.md] Section 2 (Data Structure)
+- Working directory: packages/beddel/
+- Consult @[packages/beddel/setup.md] Section 2 (Data Structure)
 
 **Steps:**
 1. Create examples/agents/assistant.yaml:
@@ -359,7 +359,7 @@ You are implementing Task 3.2 of Beddel 2.6.
 ```yaml
 metadata:
   name: "Streaming Assistant"
-  version: "2.6.0"
+  version: "1.0.0"
 
 workflow:
   - id: "chat-interaction"

@@ -20,6 +20,6 @@
 
 ## Notes
 
-- Beddel 2.6 is a **package**, not a standalone application
+- Beddel Protocol is a **package**, not a standalone application
 - Next.js dependency is for consumers, not bundled in the package
 - The package exposes TypeScript modules for consumption in Edge or Node.js environments

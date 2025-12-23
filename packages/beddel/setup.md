@@ -1,4 +1,4 @@
-# Beddel 2.6 - Streaming Pipeline Edition
+# Beddel Protocol - Streaming Pipeline Edition
 
 > **Prompting Strategy**: Chain-of-Thought with Architecture-First Approach  
 > Story 1: **Streaming Chat Pipeline** — Declarative YAML flow using Vercel AI SDK Core
@@ -7,7 +7,7 @@
 
 ## 1. Project Context
 
-Beddel 2.6 is a **declarative agent execution engine** built on top of Vercel AI SDK Core.
+Beddel Protocol is a **declarative agent execution engine** built on top of Vercel AI SDK Core.
 
 ### Architecture Change: "Pipeline Pattern"
 
@@ -54,7 +54,7 @@ The YAML file now defines a **Pipeline**. The concept of "Agent" is encapsulated
 # src/agents/assistant.yaml
 metadata:
   name: "Streaming Assistant"
-  version: "2.6.0"
+  version: "1.0.0"
 
 workflow:
   # Step 1: The "Brain". Encapsulates ToolLoopAgent if needed.
@@ -341,8 +341,10 @@ export class WorkflowExecutor {
 ## 6. Directory Structure
 
 ```
-packages/beddel-2.6/
+packages/beddel/
 ├── src/
+│   ├── index.ts                  # Server exports (Node.js deps)
+│   ├── client.ts                 # Client exports (types only, browser-safe)
 │   ├── core/
 │   │   ├── parser.ts             # YAML parsing (FAILSAFE_SCHEMA)
 │   │   ├── workflow.ts           # WorkflowExecutor
@@ -354,12 +356,20 @@ packages/beddel-2.6/
 │   │   └── call-agent.ts         # Sub-agent invocation
 │   ├── tools/
 │   │   └── index.ts              # Tool registry (calculator, getCurrentTime, etc.)
-│   ├── types/
-│   │   └── index.ts              # Type definitions
-│   └── index.ts                  # Public exports
+│   └── types/
+│       └── index.ts              # Type definitions
 ├── package.json
 └── tsconfig.json
 ```
+
+### Bundle Separation
+
+| Import Path | Contents | Use Case |
+|-------------|----------|----------|
+| `beddel` | `loadYaml`, `WorkflowExecutor`, `handlerRegistry` | API Routes, Server Components |
+| `beddel/client` | Types only (`ParsedYaml`, `ExecutionContext`, etc.) | Client Components, type-checking |
+
+> **Security**: The `beddel` entry point uses `fs/promises` (Node.js), preventing accidental import in browser bundles. Use `beddel/client` for client-side type imports.
 
 ---
 
@@ -417,7 +427,7 @@ curl -X POST http://localhost:3000/api/beddel/chat \
 
 | Date | Version | Description |
 |------|---------|-------------|
-| 2024-12-23 | 2.6.0 | Streaming Pipeline Edition: WorkflowExecutor with dual-mode LLM primitive (stream/block), REST API for Data Streams |
+| 2024-12-23 | 1.0.0 | Streaming Pipeline Edition: WorkflowExecutor with dual-mode LLM primitive (stream/block), REST API for Data Streams |
 
 ---
 

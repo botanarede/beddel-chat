@@ -1,7 +1,7 @@
 # Source Tree
 
 ```
-packages/beddel-2.6/
+packages/beddel/
 ├── src/
 │   ├── core/
 │   │   ├── parser.ts             # YAML parsing (FAILSAFE_SCHEMA)

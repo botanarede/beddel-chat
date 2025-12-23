@@ -1,6 +1,6 @@
 {
     "name": "beddel",
-    "version": "2.6.0",
+    "version": "1.0.0",
     "type": "module",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
@@ -8,6 +8,10 @@
         ".": {
             "import": "./dist/index.js",
             "types": "./dist/index.d.ts"
+        },
+        "./client": {
+            "import": "./dist/client.js",
+            "types": "./dist/client.d.ts"
         }
     },
     "scripts": {

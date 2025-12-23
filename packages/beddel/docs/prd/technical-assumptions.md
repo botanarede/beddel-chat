@@ -2,7 +2,7 @@
 
 ## Repository Structure
 
-- **Structure:** Monorepo package (`packages/beddel-2.6/`)
+- **Structure:** Monorepo package (`packages/beddel/`)
 - **Package Manager:** npm or pnpm (workspace-compatible)
 
 ## Service Architecture

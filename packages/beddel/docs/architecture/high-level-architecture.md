@@ -2,12 +2,12 @@
 
 ## Technical Summary
 
-Beddel 2.6 is a **Sequential Pipeline Executor** that parses YAML workflow definitions and executes steps sequentially. The architecture prioritizes streaming-first LLM responses, secure configuration parsing, and an extensible primitive system. Core patterns include the Expansion Pack Pattern for primitive registration and the early-return pattern for streaming responses.
+Beddel Protocol is a **Sequential Pipeline Executor** that parses YAML workflow definitions and executes steps sequentially. The architecture prioritizes streaming-first LLM responses, secure configuration parsing, and an extensible primitive system. Core patterns include the Expansion Pack Pattern for primitive registration and the early-return pattern for streaming responses.
 
 ## High Level Overview
 
 1. **Architectural Style:** Sequential Pipeline (not microservices)
-2. **Repository Structure:** Monorepo package (`packages/beddel-2.6/`)
+2. **Repository Structure:** Monorepo package (`packages/beddel/`)
 3. **Service Architecture:** Stateless executor with no external database dependencies
 4. **Primary Data Flow:**
    - Client sends `{ agentId, messages }` to REST endpoint

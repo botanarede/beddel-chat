@@ -10,9 +10,9 @@
 
 ## Background Context
 
-Beddel 2.6 represents a fundamental shift in architecture: from an "agent wrapper" approach to a **Sequential Pipeline Executor**. This redesign addresses the need for streaming-first chat interactions while maintaining the declarative configuration philosophy that makes Beddel accessible to developers.
+Beddel Protocol represents a fundamental shift in architecture: from an "agent wrapper" approach to a **Sequential Pipeline Executor**. This redesign addresses the need for streaming-first chat interactions while maintaining the declarative configuration philosophy that makes Beddel accessible to developers.
 
-The core problem being solved is the latency in LLM-powered applications where responses are delivered only after full processing. By leveraging Vercel AI SDK's `streamText` capability, Beddel 2.6 enables instant, token-by-token response delivery.
+The core problem being solved is the latency in LLM-powered applications where responses are delivered only after full processing. By leveraging Vercel AI SDK's `streamText` capability, Beddel Protocol enables instant, token-by-token response delivery.
 
 ### Key Concepts
 

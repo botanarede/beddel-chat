@@ -1,4 +1,4 @@
-# Beddel 2.6 - Product Requirements Document (PRD)
+# Beddel Protocol - Product Requirements Document (PRD)
 
 > **Version:** 1.0.0  
 > **Scope:** Streaming Pipeline Edition — First release of the package
@@ -18,4 +18,4 @@
 
 | Date       | Version | Description              | Author |
 |------------|---------|--------------------------|--------|
-| 2024-12-23 | 1.0.0   | Initial PRD for Beddel 2.6 | BMad Master |
+| 2024-12-23 | 1.0.0   | Initial PRD for Beddel Protocol | BMad Master |

@@ -1,5 +1,5 @@
 /**
- * Beddel 2.6 - Secure YAML Parser
+ * Beddel Protocol - Secure YAML Parser
  * Uses FAILSAFE_SCHEMA to prevent code execution attacks
  */
 
