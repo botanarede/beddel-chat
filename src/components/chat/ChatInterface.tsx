@@ -2,15 +2,15 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Bug, X, Sparkles } from "lucide-react";
-import { Card } from "@/src/components/ui/card";
-import { ScrollArea } from "@/src/components/ui/scroll-area";
-import { Skeleton } from "@/src/components/ui/skeleton";
-import { Button } from "@/src/components/ui/button";
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/src/components/ui/resizable";
+import { Card } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { ChatMessage } from "./ChatMessage";
 import { ChatInput } from "./ChatInput";
 import { DebugSidebar } from "./DebugSidebar";
-import { sendChatMessage, type ChatMode } from "@/src/lib/chat-api";
+import { sendChatMessage, type ChatMode } from "@/lib/chat-api";
 import type { ConversationMessage, ExecutionStep } from "beddel";
 
 export function ChatInterface() {
