@@ -60,10 +60,10 @@ export default function ChatPage() {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-pink-500/10 text-pink-500">
             <Sparkles className="h-5 w-5" />
           </div>
-          <h1 className="text-lg font-semibold tracking-tight">Beddel Assistant</h1>
+          <h1 className="text-lg font-semibold tracking-tight">Beddel Studio</h1>
         </div>
         <div className="text-xs font-medium text-muted-foreground bg-secondary/50 px-3 py-1 rounded-full">
-          Powered by Beddel 2.6
+          Powered by Beddel Protocol
         </div>
       </header>
 
@@ -140,7 +140,7 @@ export default function ChatPage() {
             </Button>
           </form>
           <div className="mt-2 text-center text-[10px] text-muted-foreground">
-            Beddel Protocol 2.6 Alpha Preview
+            Beddel Protocol
           </div>
         </div>
       </footer>
