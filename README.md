@@ -97,6 +97,10 @@ workflow:
 - [Beddel Protocol](https://github.com/botanarede/beddel) - The core package
 - [Beddel on npm](https://www.npmjs.com/package/beddel)
 
+## Newsletter
+
+[![Subscribe on Substack](https://img.shields.io/badge/Subscribe-Substack-orange?style=for-the-badge&logo=substack)](https://beddelprotocol.substack.com/subscribe)
+
 ## License
 
 MIT
