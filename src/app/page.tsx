@@ -4,21 +4,21 @@ import { useChat, type UIMessage } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { Send, User, Bot, Sparkles, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function ChatPage() {
-  // AI SDK v5: useChat no longer manages input state
   const [input, setInput] = useState("");
 
   const { messages, sendMessage, status } = useChat({
-    // AI SDK v5: Use transport for API configuration
     transport: new DefaultChatTransport({
       api: "/api/beddel/chat",
       body: {
-        agentId: "assistant",
+        // agentId: "assistant",
+        agentId: "assistant-bedrock",
       },
     }),
   });
@@ -36,7 +36,6 @@ export default function ChatPage() {
     e.preventDefault();
     if (!input.trim()) return;
 
-    // AI SDK v5: sendMessage with text property
     await sendMessage({ text: input });
     setInput("");
   };
@@ -101,7 +100,19 @@ export default function ChatPage() {
                         ? "bg-primary text-primary-foreground rounded-tr-sm"
                         : "bg-card border rounded-tl-sm text-card-foreground"
                         }`}>
-                        {getMessageContent(m)}
+                        {m.role === "user" ? (
+                          getMessageContent(m)
+                        ) : (
+                          <ReactMarkdown
+                            components={{
+                              hr: () => <hr className="my-3 border-border/50" />,
+                              strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
+                              p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                            }}
+                          >
+                            {getMessageContent(m)}
+                          </ReactMarkdown>
+                        )}
                       </div>
                       <span className="text-[10px] text-muted-foreground opacity-50 px-1">
                         {m.role === "user" ? "You" : "Assistant"}

@@ -1,14 +1,16 @@
+# Streaming Assistant
+# Uses Google Gemini for fast, streaming responses
+
 metadata:
-  name: "Q&A Assistant"
+  name: "Streaming Assistant"
   version: "1.0.0"
 
 workflow:
   - id: "chat-interaction"
     type: "llm"
     config:
+      provider: "google"
       model: "gemini-2.0-flash-exp"
       stream: true
-      system: "You are a helpful assistant. You remember the conversation history provided in the messages."
+      system: "You are a helpful assistant."
       messages: "$input.messages"
-      tools: []
-    result: "llmOutput"
