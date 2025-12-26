@@ -21,15 +21,16 @@ This document provides essential context for AI agents and developers working on
 
 ## Technology Stack
 
-| Category        | Technology         | Version | Purpose                               |
-|-----------------|--------------------|---------|---------------------------------------|
-| **Language**    | TypeScript         | 5.x     | Primary development language          |
-| **Runtime**     | Node.js / Edge     | 20+     | JavaScript runtime                    |
-| **AI Core**     | `ai`               | 6.x     | Vercel AI SDK Core                    |
-| **AI Provider** | `@ai-sdk/google`   | 3.x     | Google Gemini integration             |
-| **Validation**  | `zod`              | 3.x     | Schema validation for tools           |
-| **YAML Parser** | `js-yaml`          | 4.x     | Secure YAML parsing (FAILSAFE_SCHEMA) |
-| **Framework**   | Next.js App Router | 14+     | API route hosting (consumer-side)     |
+| Category        | Technology              | Version | Purpose                               |
+|-----------------|-------------------------|---------|---------------------------------------|
+| **Language**    | TypeScript              | 5.x     | Primary development language          |
+| **Runtime**     | Node.js / Edge          | 20+     | JavaScript runtime                    |
+| **AI Core**     | `ai`                    | 6.x     | Vercel AI SDK Core                    |
+| **AI Provider** | `@ai-sdk/google`        | 3.x     | Google Gemini integration             |
+| **AI Provider** | `@ai-sdk/amazon-bedrock`| 4.x     | Amazon Bedrock integration            |
+| **Validation**  | `zod`                   | 3.x     | Schema validation for tools           |
+| **YAML Parser** | `js-yaml`               | 4.x     | Secure YAML parsing (FAILSAFE_SCHEMA) |
+| **Framework**   | Next.js App Router      | 14+     | API route hosting (consumer-side)     |
 
 ---
 
@@ -49,6 +50,8 @@ packages/beddel/
 │   │   ├── index.ts              # Handler registry (handlerRegistry)
 │   │   ├── llm.ts                # streamText/generateText wrapper
 │   │   └── output.ts             # JSON transform primitive
+│   ├── providers/
+│   │   └── index.ts              # Provider registry (google, bedrock)
 │   ├── server/
 │   │   └── handler.ts            # createBeddelHandler factory
 │   ├── tools/
@@ -119,6 +122,7 @@ Beddel exports three distinct bundles to support different runtime environments:
 
 - `stream: true` → `streamText()` → `result.toUIMessageStreamResponse()`
 - `stream: false` → `generateText()` → `{ text, usage }`
+- Uses `createModel()` from provider registry for dynamic provider selection
 - Uses `dynamicTool()` for registry-based tool creation
 - Uses `stopWhen: stepCountIs(5)` for multi-step tool loops
 - Supports `onFinish` / `onError` lifecycle callbacks
@@ -129,7 +133,25 @@ Beddel exports three distinct bundles to support different runtime environments:
 - `convertToModelMessages()` bridges this gap automatically
 - `toUIMessageStreamResponse()` returns the correct stream format for `useChat`
 
-**Environment:** Requires `GEMINI_API_KEY` environment variable.
+**Environment:** 
+- Google: Requires `GEMINI_API_KEY`
+- Bedrock: Requires `AWS_REGION` (defaults to `us-east-1`) and `AWS_BEARER_TOKEN_BEDROCK` or standard AWS credentials
+
+### Provider Registry (`src/providers/index.ts`)
+
+**Responsibility:** Register and provide LLM provider implementations.
+
+**Built-in Providers:**
+- `google` — Google Gemini via `@ai-sdk/google` (requires `GEMINI_API_KEY`)
+- `bedrock` — Amazon Bedrock via `@ai-sdk/amazon-bedrock` (requires `AWS_REGION`, defaults to `us-east-1`)
+
+**Environment Variables for Bedrock:**
+- `AWS_REGION` — AWS region (required, defaults to `us-east-1`)
+- `AWS_BEARER_TOKEN_BEDROCK` — API key for Bedrock (or use standard AWS credentials)
+
+**Key Functions:**
+- `registerProvider(name, implementation)` — Add custom providers
+- `createModel(provider, config)` — Create LanguageModel from registry
 
 ### Tool Registry (`src/tools/index.ts`)
 
@@ -183,6 +205,22 @@ registerCallback('persistConversation', async ({ text, usage }) => {
 });
 ```
 
+### `registerProvider(name, implementation)`
+
+Add custom LLM providers for dynamic model selection.
+
+```typescript
+import { registerProvider } from 'beddel';
+import { createOpenAI } from '@ai-sdk/openai';
+
+registerProvider('openai', {
+  createModel: (config) => {
+    const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    return openai(config.model || 'gpt-4');
+  },
+});
+```
+
 ---
 
 ## YAML Agent Structure
@@ -198,6 +236,7 @@ workflow:
   - id: "step-1"
     type: "llm"           # Primitive type
     config:
+      provider: "google"  # Optional: 'google' (default) or 'bedrock' or custom
       model: "gemini-2.0-flash-exp"
       stream: true        # true = streaming, false = blocking
       system: "System prompt"
@@ -235,10 +274,47 @@ workflow:
   - id: "chat-interaction"
     type: "llm"
     config:
+      provider: "google"          # Optional: 'google' (default) or 'bedrock'
       model: "gemini-2.0-flash-exp"
       stream: true
       system: "You are a helpful assistant."
       messages: "$input.messages"
+```
+
+**Using Amazon Bedrock:**
+
+```yaml
+# src/agents/assistant-bedrock.yaml
+metadata:
+  name: "Bedrock Assistant"
+  version: "1.0.0"
+  description: "Simple assistant using Llama 3.2 1B (lightweight)"
+
+workflow:
+  - id: "chat"
+    type: "llm"
+    config:
+      provider: "bedrock"
+      model: "us.meta.llama3-2-1b-instruct-v1:0"
+      stream: true
+      system: |
+        You are a helpful, friendly assistant. Be concise and direct.
+        Answer in the same language the user writes to you.
+      messages: "$input.messages"
+```
+
+**Environment Variables:**
+
+```bash
+# For Google Gemini
+GEMINI_API_KEY=your_api_key_here
+
+# For Amazon Bedrock
+AWS_REGION=us-east-1
+AWS_BEARER_TOKEN_BEDROCK=your_bedrock_api_key
+# Or use standard AWS credentials:
+# AWS_ACCESS_KEY_ID=your_access_key
+# AWS_SECRET_ACCESS_KEY=your_secret_key
 ```
 
 ### 3. Test with curl
@@ -256,7 +332,7 @@ curl -X POST http://localhost:3000/api/beddel/chat \
 | Pattern                  | Description                                                      |
 |--------------------------|------------------------------------------------------------------|
 | **Sequential Pipeline**  | Workflow steps execute in order; first `Response` breaks the loop |
-| **Expansion Pack**       | Primitives, tools, callbacks registered in extensible maps       |
+| **Expansion Pack**       | Primitives, tools, callbacks, providers registered in extensible maps |
 | **Early Return**         | Streaming responses return immediately to prevent buffering      |
 | **Registry Pattern**     | Decouples YAML definitions from implementation details           |
 | **Bundle Separation**    | Three entry points prevent Node.js deps in client bundles        |
@@ -289,6 +365,7 @@ Detailed documentation is available in `packages/beddel/docs/`:
 4. **Tool Loops:** When tools exist, `stopWhen: stepCountIs(5)` enables multi-step loops
 5. **Callbacks:** `onFinish` and `onError` execute after streaming completes
 6. **Placeholder:** `call-agent` primitive is registered but not yet implemented
+7. **Multi-Provider:** Supports Google (default) and Amazon Bedrock via `provider` config
 
 ---
 
@@ -318,6 +395,15 @@ type PrimitiveHandler = (
   config: StepConfig,
   context: ExecutionContext
 ) => Promise<Response | Record<string, unknown>>;
+
+interface ProviderImplementation {
+  createModel: (config: ProviderConfig) => LanguageModel;
+}
+
+interface ProviderConfig {
+  model: string;
+  [key: string]: unknown;
+}
 ```
 
 ---
@@ -328,3 +414,5 @@ type PrimitiveHandler = (
 |------------|---------|--------------------------|
 | 2024-12-24 | 1.0.0   | Initial AGENTS.md release |
 | 2024-12-24 | 1.0.1   | AI SDK v6 compatibility: UIMessage/ModelMessage conversion |
+| 2024-12-25 | 1.0.2   | Provider registry: registerProvider, createModel, bedrock support |
+| 2024-12-25 | 1.0.3   | Bedrock region fix: AWS_REGION env var support, updated examples |
