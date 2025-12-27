@@ -28,6 +28,7 @@ This document provides essential context for AI agents and developers working on
 | **AI Core**     | `ai`                    | 6.x     | Vercel AI SDK Core                    |
 | **AI Provider** | `@ai-sdk/google`        | 3.x     | Google Gemini integration             |
 | **AI Provider** | `@ai-sdk/amazon-bedrock`| 4.x     | Amazon Bedrock integration            |
+| **AI Provider** | `@ai-sdk/openai`        | 1.x     | OpenRouter integration (400+ models)  |
 | **Validation**  | `zod`                   | 3.x     | Schema validation for tools           |
 | **YAML Parser** | `js-yaml`               | 4.x     | Secure YAML parsing (FAILSAFE_SCHEMA) |
 | **Framework**   | Next.js App Router      | 14+     | API route hosting (consumer-side)     |
@@ -42,6 +43,11 @@ packages/beddel/
 │   ├── index.ts                  # Main server exports (Node.js deps)
 │   ├── server.ts                 # Server handler barrel export
 │   ├── client.ts                 # Client exports (types only, browser-safe)
+│   ├── agents/                   # Built-in agents (bundled with package)
+│   │   ├── index.ts              # Built-in agents registry
+│   │   ├── assistant.yaml        # Google Gemini assistant
+│   │   ├── assistant-bedrock.yaml # Amazon Bedrock assistant
+│   │   └── assistant-openrouter.yaml # OpenRouter assistant
 │   ├── core/
 │   │   ├── parser.ts             # YAML parsing (FAILSAFE_SCHEMA)
 │   │   ├── workflow.ts           # WorkflowExecutor class
@@ -51,7 +57,7 @@ packages/beddel/
 │   │   ├── llm.ts                # streamText/generateText wrapper
 │   │   └── output.ts             # JSON transform primitive
 │   ├── providers/
-│   │   └── index.ts              # Provider registry (google, bedrock)
+│   │   └── index.ts              # Provider registry (google, bedrock, openrouter)
 │   ├── server/
 │   │   └── handler.ts            # createBeddelHandler factory
 │   ├── tools/
@@ -144,6 +150,7 @@ Beddel exports three distinct bundles to support different runtime environments:
 **Built-in Providers:**
 - `google` — Google Gemini via `@ai-sdk/google` (requires `GEMINI_API_KEY`)
 - `bedrock` — Amazon Bedrock via `@ai-sdk/amazon-bedrock` (requires `AWS_REGION`, defaults to `us-east-1`)
+- `openrouter` — OpenRouter via `@ai-sdk/openai` (requires `OPENROUTER_API_KEY`, 400+ models)
 
 **Environment Variables for Bedrock:**
 - `AWS_REGION` — AWS region (required, defaults to `us-east-1`)
@@ -236,7 +243,7 @@ workflow:
   - id: "step-1"
     type: "llm"           # Primitive type
     config:
-      provider: "google"  # Optional: 'google' (default) or 'bedrock' or custom
+      provider: "google"  # Optional: 'google' (default), 'bedrock', 'openrouter', or custom
       model: "gemini-2.0-flash-exp"
       stream: true        # true = streaming, false = blocking
       system: "System prompt"
@@ -258,9 +265,68 @@ workflow:
 import { createBeddelHandler } from 'beddel/server';
 
 export const POST = createBeddelHandler({
-  agentsPath: 'src/agents'  // Optional, default: 'src/agents'
+  agentsPath: 'src/agents',      // Optional, default: 'src/agents'
+  disableBuiltinAgents: false,   // Optional, default: false
 });
 ```
+
+**Handler Options:**
+
+| Option                | Type      | Default        | Description                                      |
+|-----------------------|-----------|----------------|--------------------------------------------------|
+| `agentsPath`          | `string`  | `'src/agents'` | Path to user-defined agents (relative to CWD)    |
+| `disableBuiltinAgents`| `boolean` | `false`        | Disable built-in agents bundled with the package |
+
+---
+
+## Built-in Agents
+
+Beddel includes ready-to-use agents that work out of the box. These are available automatically without any configuration.
+
+| Agent ID               | Provider    | Model                              | Description                    |
+|------------------------|-------------|------------------------------------|--------------------------------|
+| `assistant`            | Google      | `gemini-2.0-flash-exp`             | Fast streaming assistant       |
+| `assistant-bedrock`    | Bedrock     | `us.meta.llama3-2-1b-instruct-v1:0`| Lightweight Llama 3.2 1B       |
+| `assistant-openrouter` | OpenRouter  | `qwen/qwen3-14b:free`              | Free tier via OpenRouter       |
+
+**Agent Resolution Order:**
+
+```
+1. User agents (src/agents/*.yaml) → allows override
+2. Built-in agents (package) → fallback
+```
+
+Users can override any built-in agent by creating a file with the same name in their `agentsPath`.
+
+**Example: Use built-in agent immediately**
+
+```bash
+# No setup needed - just call the built-in agent
+curl -X POST http://localhost:3000/api/beddel/chat \
+  -H "Content-Type: application/json" \
+  -d '{"agentId": "assistant-openrouter", "messages": [{"role": "user", "content": "Hello!"}]}'
+```
+
+**Example: Override built-in agent**
+
+```yaml
+# src/agents/assistant.yaml (overrides built-in)
+metadata:
+  name: "My Custom Assistant"
+  version: "1.0.0"
+
+workflow:
+  - id: "chat"
+    type: "llm"
+    config:
+      provider: "google"
+      model: "gemini-1.5-pro"  # Use different model
+      stream: true
+      system: "You are my custom assistant with special instructions."
+      messages: "$input.messages"
+```
+
+---
 
 ### 2. Create YAML Agent
 
@@ -274,7 +340,7 @@ workflow:
   - id: "chat-interaction"
     type: "llm"
     config:
-      provider: "google"          # Optional: 'google' (default) or 'bedrock'
+      provider: "google"          # Optional: 'google' (default), 'bedrock', or 'openrouter'
       model: "gemini-2.0-flash-exp"
       stream: true
       system: "You are a helpful assistant."
@@ -315,6 +381,28 @@ AWS_BEARER_TOKEN_BEDROCK=your_bedrock_api_key
 # Or use standard AWS credentials:
 # AWS_ACCESS_KEY_ID=your_access_key
 # AWS_SECRET_ACCESS_KEY=your_secret_key
+
+# For OpenRouter (400+ models)
+OPENROUTER_API_KEY=your_openrouter_api_key
+```
+
+**Using OpenRouter:**
+
+```yaml
+# src/agents/assistant-openrouter.yaml
+metadata:
+  name: "OpenRouter Assistant"
+  version: "1.0.0"
+
+workflow:
+  - id: "chat"
+    type: "llm"
+    config:
+      provider: "openrouter"
+      model: "qwen/qwen3-14b:free"  # or any model from openrouter.ai/models
+      stream: true
+      system: "You are a helpful assistant."
+      messages: "$input.messages"
 ```
 
 ### 3. Test with curl
@@ -365,7 +453,7 @@ Detailed documentation is available in `packages/beddel/docs/`:
 4. **Tool Loops:** When tools exist, `stopWhen: stepCountIs(5)` enables multi-step loops
 5. **Callbacks:** `onFinish` and `onError` execute after streaming completes
 6. **Placeholder:** `call-agent` primitive is registered but not yet implemented
-7. **Multi-Provider:** Supports Google (default) and Amazon Bedrock via `provider` config
+7. **Multi-Provider:** Supports Google (default), Amazon Bedrock, and OpenRouter via `provider` config
 
 ---
 
@@ -416,3 +504,5 @@ interface ProviderConfig {
 | 2024-12-24 | 1.0.1   | AI SDK v6 compatibility: UIMessage/ModelMessage conversion |
 | 2024-12-25 | 1.0.2   | Provider registry: registerProvider, createModel, bedrock support |
 | 2024-12-25 | 1.0.3   | Bedrock region fix: AWS_REGION env var support, updated examples |
+| 2024-12-26 | 1.0.3   | OpenRouter provider: 400+ models via @ai-sdk/openai |
+| 2024-12-26 | 1.0.3   | Built-in agents: assistant, assistant-bedrock, assistant-openrouter bundled with package |

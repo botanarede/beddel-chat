@@ -10,7 +10,7 @@ This is a Next.js application that demonstrates how to use the `beddel` package 
 
 - **Framework**: Next.js 14+ (App Router)
 - **AI Engine**: [Beddel Protocol](https://www.npmjs.com/package/beddel) + Vercel AI SDK v6
-- **LLM Provider**: Google Gemini
+- **LLM Providers**: Google Gemini, Amazon Bedrock, OpenRouter (400+ models)
 - **UI**: Tailwind CSS + Radix UI + shadcn/ui
 - **Package Manager**: pnpm
 
@@ -20,7 +20,7 @@ This is a Next.js application that demonstrates how to use the `beddel` package 
 
 - Node.js 20+
 - pnpm 10+
-- Google Gemini API Key
+- API Key for at least one provider (Gemini, Bedrock, or OpenRouter)
 
 ### 1. Clone the repository
 
@@ -40,8 +40,18 @@ pnpm install
 Create a `.env.local` file:
 
 ```env
+# Google Gemini (default provider)
 GEMINI_API_KEY=your_gemini_api_key_here
+
+# Amazon Bedrock (optional)
+AWS_REGION=us-east-1
+AWS_BEARER_TOKEN_BEDROCK=your_bedrock_api_key
+
+# OpenRouter - 400+ models (optional)
+OPENROUTER_API_KEY=your_openrouter_api_key
 ```
+
+> Only configure the providers you plan to use.
 
 ### 4. Build the beddel package
 

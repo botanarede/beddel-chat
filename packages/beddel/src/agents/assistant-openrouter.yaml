@@ -1,16 +1,17 @@
-# Streaming Assistant
-# Uses Google Gemini for fast, streaming responses
+# Built-in OpenRouter Assistant
+# Uses OpenRouter for access to 400+ models
 
 metadata:
-  name: "Streaming Assistant"
+  name: "OpenRouter Assistant"
   version: "1.0.0"
+  builtin: true
 
 workflow:
   - id: "chat-interaction"
     type: "llm"
     config:
-      provider: "google"
-      model: "gemini-2.0-flash-exp"
+      provider: "openrouter"
+      model: "qwen/qwen3-coder:free"
       stream: true
       system: "You are a helpful assistant."
       messages: "$input.messages"

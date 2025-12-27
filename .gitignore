@@ -38,3 +38,4 @@ packages/beddel/node_modules
 packages/beddel/dist
 packages/beddel/node_modules/*
 packages/beddel/dist/*
+prompt_dashboard.md

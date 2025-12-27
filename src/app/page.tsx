@@ -18,7 +18,7 @@ export default function ChatPage() {
       api: "/api/beddel/chat",
       body: {
         // agentId: "assistant",
-        agentId: "assistant-bedrock",
+        agentId: "assistant-openrouter",
       },
     }),
   });

@@ -1,11 +1,11 @@
-# Bedrock Assistant
+# Built-in Bedrock Assistant
 # Uses Meta Llama 3.2 1B - lightweight and cheap model on Bedrock
-# Model ID: us.meta.llama3-2-1b-instruct-v1:0
 
 metadata:
   name: "Bedrock Assistant"
   version: "1.0.0"
   description: "Simple assistant using Llama 3.2 1B (lightweight)"
+  builtin: true
 
 workflow:
   - id: "chat"
